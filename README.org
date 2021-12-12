@@ -1,0 +1,38 @@
+#+AUTHOR: Maximo Tejeda
+#+EMAIL: maximotejeda@gmail.com
+#+TITLE: Google Domains Ddns refresher
+
+* DNSER
+  Esto es algo que se me ocurrio mientras leia el libro "The Go Programming Languaje" para poner en practica algunas de las tecnicas que vi en el libro. Por lo que esto puede ser considerado una practica en mi tiempo libre.
+  
+  Esta herramienta esta pensada para poder refrescar los dns dinamicos de google domains, a pesar de que con un simple curl es posible realizar esto mismo, no es comodo realizarlo de forma manual y constante, la misma herramienta la realice en shellScript pero mi no quede satisfecho con los resultados por lo que como estoy jugando ultimamente mas con go
+  he optado por rehacerla desde cero con algunas mejoras de por medio.
+
+** Concurrencia:
+   Para implementar la concurrencia ya que cada request tarda de media de 500ms a 1s opte por hacerlas paralelas y de esta forma en mi caso en lugar de 15s la actualizacion se realiza en 1s si ocurre algun error durante la request es reportado en los logs de la forma mas clara que pude.
+
+** Variables De Entorno
+   para hace que esto ande hay que exportar 4 variables de entorno:
+   - DOMAIN:
+     Es el nombre de dominio que se actualizara, para poder crear la URL que hara la actualizacion es necesario proveerla.
+   - INTERVAL:
+     Intervalo de actualizacion en minutos. En mi caso cada 15.
+   - SECRETSFILE:
+     Archivo que contiene las credenciales de cada subdominio asi como el nombre de estos.
+   - QUERYURL:
+     URL del servicio que proveera la IP publica actual desde donde se realiza la actualizacion, solo con fines de comprobacion de esta. "http://ifconfig.me"
+
+** Despliegue
+   En un principio pense esto para usarlo en kubernetes pues usaba un job recurrente con un shellscript el cual tardaba mas y consumia mas memoria y cpu y como era un job habia que crear y desechar un container cada vez.
+   Gracias a GO pude hacer el mismo proceso usando apenas unos 4mb de memoria con container y todo durante los picos de ejecucion.
+   
+   Para poder desplegar la aplicacion es necesario haber:
+   1. Exportado las variables de entorno.
+   2. Copiado el archivo especificado en SECRETSFILE en la misma carpeta donde se encontrara el ejecutable.
+
+** Dockerfile
+   Para crear el container usa la version 1.17 de go en multistage y la version gcr.io/distroless/static-debian11 para el container receiver quedando la imagen en unos 8 Mb.
+
+** Kubernetes
+   En kubernetes se desplegara un secret con el contenido de SECRETSFILE y se montara en el container como un volumen por seguridad.
+   
